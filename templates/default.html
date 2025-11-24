@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} - {{siteName}}</title>
+    <link rel="canonical" href="{{canonicalUrl}}">
+    <link rel="stylesheet" href="{{rootPath}}css/{{styleSheet}}">
+    
+{{{seoMetaTags}}}
+    
+{{{seoStructuredData}}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const NAV_STATE_KEY = 'foursg-nav-state';
+            
+            function loadNavState() {
+                try {
+                    const state = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}');
+                    document.querySelectorAll('.nav-folder').forEach(details => {
+                        if (state[details.id] !== undefined) {
+                            details.open = state[details.id];
+                        }
+                    });
+                } catch (e) {}
+            }
+            
+            function saveNavState() {
+                const state = {};
+                document.querySelectorAll('.nav-folder').forEach(details => {
+                    state[details.id] = details.open;
+                });
+                localStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
+            }
+            
+            loadNavState();
+            
+            document.querySelectorAll('.nav-folder').forEach(details => {
+                details.addEventListener('toggle', saveNavState);
+            });
+        });
+    </script>
+</head>
+<body>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle">
+    
+    <header class="site-header">
+        <label for="nav-toggle" class="nav-toggle-label">☰</label>
+        <a href="{{rootPath}}" class="site-title">{{siteName}}</a>
+    </header>
+    
+    <div class="container">
+        <aside class="sidebar">
+            <nav class="site-nav">
+                {{{navigation}}}
+            </nav>
+        </aside>
+        
+        <main class="content">
+            <article>
+                <header>
+                    <h1>{{title}}</h1>
+                </header>
+                <div class="article-content">
+                    {{{content}}}
+                </div>
+            </article>
+        </main>
+    </div>
+    
+    <footer>
+        <p>Generated with FourSG for Obsidian</p>
+    </footer>
+</body>
+</html>

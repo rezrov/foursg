@@ -1,7 +1,7 @@
 export interface SeoConfig {
     title: string;
     description?: string;
-    keywords?: string[];
+    keywords?: string;
     author?: string;
     ogImage?: string;
     siteName?: string;
@@ -32,8 +32,8 @@ export class SeoManager {
             tags.push({ name: 'description', content: this.config.description });
         }
 
-        if (this.config.keywords && this.config.keywords.length > 0) {
-            tags.push({ name: 'keywords', content: this.config.keywords.join(', ') });
+        if (this.config.keywords) {
+            tags.push({ name: 'keywords', content: this.config.keywords });
         }
 
         if (this.config.author) {

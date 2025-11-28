@@ -530,7 +530,7 @@ export class SiteGenerator {
 
     // ==================== Template & Asset Handling ====================
 
-    private async wrapInTemplate(content: string, title: string, outputFilePath: string, frontMatter: Record<string, any>, file: TFile): Promise<string> {
+    private async wrapInTemplate(content: string, filename: string, outputFilePath: string, frontMatter: Record<string, any>, file: TFile): Promise<string> {
         const rootPath = this.getRelativePathToRoot(outputFilePath) || './';
         const templateName = frontMatter.page_template || 'default.html';
         const templatePath = join(this.templatePath, templateName);
@@ -542,7 +542,7 @@ export class SiteGenerator {
         }
 
         const navigation = this.generateNavigation(outputFilePath);
-        const seoData = this.generateSeoData(title, outputFilePath, frontMatter, file, rootPath);
+        const seoData = this.generateSeoData(filename, outputFilePath, frontMatter, file, rootPath);
 
         const pageUrl = this.getPageUrl(outputFilePath);
         if (this.sitemapGenerator) {
@@ -555,7 +555,7 @@ export class SiteGenerator {
         }
 
         return Mustache.render(template, {
-            title,
+            title: frontMatter.title || filename,
             siteName: this.siteName,
             rootPath,
             content,
@@ -626,17 +626,21 @@ export class SiteGenerator {
             ogImage = this.siteUrl + '/' + rootPath + ogImage;
         }
 
+        const keywords = frontMatter.keywords 
+            ? (Array.isArray(frontMatter.keywords) ? frontMatter.keywords.join(', ') : String(frontMatter.keywords))
+            : undefined;
+
         const seoManager = new SeoManager({
             title: frontMatter.title || title,
             description: frontMatter.description,
-            keywords: frontMatter.keywords,
+            keywords: keywords,
             author: frontMatter.author,
             ogImage: ogImage,
             siteName: this.siteName,
             url: pageUrl,
             type: frontMatter.type || (file.parent?.path !== '/' ? 'article' : 'website'),
             publishedTime: frontMatter.published_date ? new Date(frontMatter.published_date).toISOString() : undefined,
-            modifiedTime: frontMatter.last_modified_date ? new Date(frontMatter.last_modified_date).toISOString() : new Date(file.stat.mtime).toISOString(),
+            modifiedTime: frontMatter.last_modified_date ? new Date(frontMatter.last_modified_date).toISOString() : (frontMatter.published_date ? new Date(frontMatter.published_date).toISOString() : undefined),
             section: frontMatter.section || file.parent?.name
         });
 
@@ -653,8 +657,8 @@ export class SiteGenerator {
     }
 
     private getChangeFreq(filePath: string): 'weekly' | 'monthly' {
-        const depth = filePath.split('/').length;
-        return depth <= 1 ? 'weekly' : 'monthly';
+        const baseName = basename(filePath, '.md').toLowerCase();
+        return baseName === 'index' ? 'weekly' : 'monthly';
     }
 
     private getPriority(filePath: string): number {

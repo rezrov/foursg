@@ -172,7 +172,7 @@ priority: 0.9
 ---
 title: Understanding Static Site Generators
 description: A comprehensive guide to building fast, secure websites with static site generators
-keywords: ["static-site", "jamstack", "web-development"]
+keywords: static-site, jamstack, web-development
 author: Jane Developer
 og_image: images/ssg-guide.jpg
 type: article

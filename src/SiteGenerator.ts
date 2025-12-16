@@ -573,10 +573,19 @@ export class SiteGenerator {
 
         await this.ensureDirectory(outputDir);
 
-        const defaultCssPath = join(sourceDir, 'default.css');
-        await this.copyUnlessExists('css/default.css', defaultCssPath);
+        const pluginDir = this.plugin.manifest.dir || 'foursg';
+        const pluginCssDir = join(pluginDir, 'css');
+        const pluginCssItems = await this.dataAdapter.list(pluginCssDir);
+        const pluginCssFiles = pluginCssItems.files.filter(file => file.endsWith('.css'));
+
+        for (const pluginCssFile of pluginCssFiles) {
+            const fileName = basename(pluginCssFile);
+            const destinationPath = join(sourceDir, fileName);
+            await this.copyUnlessExists(`css/${fileName}`, destinationPath);
+        }
 
         const items = await this.dataAdapter.list(sourceDir);
+        this.alwaysLog(`Found ${items.files.length} CSS files in ${sourceDir}`, items);
         const cssFiles = items.files.filter(file => file.endsWith('.css'));
 
         for (const cssFile of cssFiles) {

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;500;700&display=swap');
+
 /* Reset and base styles */
 * {
     margin: 0;
@@ -5,21 +7,36 @@
     box-sizing: border-box;
     overscroll-behavior-y: none;
     overscroll-behavior: none;
+    font-family: 'Fira Mono', 'SF Mono', Monaco, 'Courier New', monospace;
 }
 
 :root {
-    --color-primary: #3498db;
-    --color-primary-dark: #2980b9;
-    --color-dark: #2c3e50;
-    --color-dark-alt: #34495e;
-    --color-text: #333;
-    --color-text-muted: #666;
-    --color-bg-light: #f0f0f0;
-    --color-bg-lighter: #f8f9fa;
-    --color-bg-sidebar: #f0f8ff;
-    --color-border: #e0e0e0;
-    --color-border-light: #ddd;
-    --color-code-bg: #ecf0f1;
+    /* Four base colors */
+    --base-bg: #070F2B;
+    --base-fg: #9290C3;
+    --base-accent: #535C91;
+    --base-highlight: #1B1A55;
+    
+    /* Derived colors */
+    --color-primary: var(--base-accent);
+    --color-primary-dark: color-mix(in srgb, var(--base-accent) 80%, black);
+    --color-primary-light: color-mix(in srgb, var(--base-accent) 70%, var(--base-fg));
+    --color-visited: color-mix(in srgb, var(--base-accent) 60%, #c794ff);
+    --color-dark: var(--base-fg);
+    --color-dark-alt: color-mix(in srgb, var(--base-fg) 75%, var(--base-bg));
+    --color-text: var(--base-fg);
+    --color-text-muted: color-mix(in srgb, var(--base-fg) 65%, var(--base-bg));
+    --color-bg: var(--base-bg);
+    --color-bg-light: color-mix(in srgb, var(--base-bg) 85%, var(--base-fg));
+    --color-bg-lighter: color-mix(in srgb, var(--base-bg) 92%, var(--base-fg));
+    --color-bg-sidebar: color-mix(in srgb, var(--base-bg) 95%, var(--base-fg));
+    --color-border: color-mix(in srgb, var(--base-bg) 75%, var(--base-fg));
+    --color-border-light: color-mix(in srgb, var(--base-bg) 80%, var(--base-fg));
+    --color-code-bg: color-mix(in srgb, var(--base-bg) 88%, var(--base-fg));
+    --color-code-fg: color-mix(in srgb, var(--base-fg) 90%, var(--base-bg));
+    --color-header-bg: var(--base-highlight);
+    --color-header-fg: color-mix(in srgb, var(--base-accent) 70%, var(--base-fg));
+    --color-header-title: color-mix(in srgb, var(--base-fg) 95%, var(--base-accent));
     
     --sidebar-width: 280px;
     --container-gap: 1rem;
@@ -28,28 +45,27 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.6;
     color: var(--color-text);
-    background: white;
+    background: var(--color-bg);
 }
 
 /* Site Header */
 .site-header {
-    background: var(--color-dark);
-    color: white;
+    background: var(--color-header-bg);
+    color: var(--color-header-fg);
     padding: 0.75rem 1rem;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     display: flex;
     align-items: center;
     gap: 1rem;
 }
 
 .site-title {
-    color: white;
+    color: var(--color-header-title);
     text-decoration: none;
     font-size: 1.5rem;
     font-weight: bold;
@@ -68,7 +84,7 @@ body {
     display: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: white;
+    color: var(--color-header-title);
     padding: 0 0.5rem;
 }
 
@@ -83,7 +99,7 @@ body {
     padding: 1.5rem;
     background: var(--color-bg-sidebar);
     z-index: 50;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
 }
 
 /* Main wrapper - offset from fixed sidebar */
@@ -122,7 +138,7 @@ body {
 
 .site-nav a.active {
     background: var(--color-primary);
-    color: white;
+    color: var(--color-bg);
 }
 
 .site-nav details.nav-folder {
@@ -271,6 +287,10 @@ article {
     text-decoration: underline;
 }
 
+.article-content a:visited {
+    color: var(--color-visited);
+}
+
 .article-content ul, .article-content ol {
     margin: 1rem 0;
     padding-left: 2rem;
@@ -290,8 +310,8 @@ article {
 }
 
 .article-content pre {
-    background: var(--color-dark);
-    color: var(--color-code-bg);
+    background: var(--color-bg-sidebar);
+    color: var(--color-code-fg);
     padding: 1rem;
     border-radius: 4px;
     overflow-x: auto;
@@ -302,7 +322,6 @@ article {
     background: var(--color-code-bg);
     padding: 2px 6px;
     border-radius: 3px;
-    font-family: 'Courier New', monospace;
 }
 
 .article-content pre code {
@@ -316,7 +335,7 @@ article {
     display: block;
     margin: 1.5rem auto;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
 .article-content table {
@@ -344,6 +363,10 @@ footer {
     font-size: 0.9rem;
 }
 
+footer a:visited {
+    color: var(--color-visited);
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     .nav-toggle-label {
@@ -353,7 +376,7 @@ footer {
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+        box-shadow: 2px 0 8px rgba(0,0,0,0.3);
         z-index: 90;
     }
     

@@ -14,17 +14,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             const NAV_STATE_KEY = 'foursg-nav-state';
             
-            function loadNavState() {
-                try {
-                    const state = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}');
-                    document.querySelectorAll('.nav-folder').forEach(details => {
-                        if (state[details.id] !== undefined) {
-                            details.open = state[details.id];
-                        }
-                    });
-                } catch (e) {}
-            }
-            
             function saveNavState() {
                 const state = {};
                 document.querySelectorAll('.nav-folder').forEach(details => {
@@ -33,10 +22,24 @@
                 localStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
             }
             
-            loadNavState();
+            try {
+                const state = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}');
+                document.querySelectorAll('.nav-folder').forEach(details => {
+                    if (state[details.id] !== undefined) {
+                        details.open = state[details.id];
+                    }
+                    details.addEventListener('toggle', saveNavState);
+                });
+            } catch (e) {}
             
-            document.querySelectorAll('.nav-folder').forEach(details => {
-                details.addEventListener('toggle', saveNavState);
+            // Close mobile sidebar when clicking outside
+            const navToggle = document.getElementById('nav-toggle');
+            const mainWrapper = document.querySelector('.main-wrapper');
+            
+            mainWrapper.addEventListener('click', function() {
+                if (navToggle.checked) {
+                    navToggle.checked = false;
+                }
             });
         });
     </script>
@@ -49,27 +52,25 @@
         <a href="{{rootPath}}" class="site-title">{{siteName}}</a>
     </header>
     
-    <div class="container">
-        <aside class="sidebar">
-            <nav class="site-nav">
-                {{{navigation}}}
-            </nav>
-        </aside>
-        
+    <aside class="sidebar">
+        <nav class="site-nav">
+            {{{navigation}}}
+        </nav>
+    </aside>
+    
+    <div class="main-wrapper">
         <main class="content">
             <article>
-                <header>
-                    <h1>{{title}}</h1>
-                </header>
+                <h1>{{title}}</h1>
                 <div class="article-content">
                     {{{content}}}
                 </div>
             </article>
         </main>
+        
+        <footer>
+            <small>Generated with <a href="https://github.com/rezrov/foursg">FourSG</a> for <a href="https://obsidian.md">Obsidian</a></small>
+        </footer>
     </div>
-    
-    <footer>
-        <p>Generated with <a href="https://github.com/rezrov/foursg">FourSG</a> for <a href="https://obsidian.md">Obsidian</a></p>
-    </footer>
 </body>
 </html>

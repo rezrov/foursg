@@ -14,6 +14,14 @@ interface NavNode {
     outputPath: string;
     children: NavNode[];
     isIndex: boolean;
+    navOrder: number;
+    sortDate: number;
+}
+
+interface FrontmatterData {
+    nav_order?: number;
+    published_date?: string;
+    [key: string]: any;
 }
 
 export class SiteGenerator {
@@ -28,7 +36,7 @@ export class SiteGenerator {
     private cachedMarkdownFiles: TFile[] | null = null;
     private cachedImageFiles: TFile[] | null = null;
     private templateCache: Map<string, string> = new Map();
-    private navigationHTML: string = '';
+    private frontmatterCache: Map<string, FrontmatterData> = new Map();
     private siteName: string = 'My Site';
     private siteUrl: string = 'https://example.com';
     private sitemapGenerator: SitemapGenerator | null = null;
@@ -82,6 +90,7 @@ export class SiteGenerator {
 
             this.cacheClearAll();
             const markdownFiles = this.getFilteredMarkdownFiles();
+            this.buildFrontmatterCache();
 
             this.alwaysLog(`Found ${markdownFiles.length} markdown files to process.`);
             markdownFiles.forEach(file => this.log(`  - ${file.path}`));
@@ -173,7 +182,26 @@ export class SiteGenerator {
         this.cachedMarkdownFiles = null;
         this.cachedImageFiles = null;
         this.templateCache.clear();
+        this.frontmatterCache.clear();
         this.processedFiles.clear();
+    }
+
+    private buildFrontmatterCache(): void {
+        const files = this.getFilteredMarkdownFiles();
+        for (const file of files) {
+            const fileCache = this.plugin.app.metadataCache.getFileCache(file);
+            const frontmatter = fileCache?.frontmatter || {};
+            this.frontmatterCache.set(file.path, {
+                nav_order: frontmatter.nav_order,
+                published_date: frontmatter.published_date,
+                ...frontmatter
+            });
+        }
+        this.log(`Built frontmatter cache for ${this.frontmatterCache.size} files`);
+    }
+
+    private getFrontmatter(filePath: string): FrontmatterData {
+        return this.frontmatterCache.get(filePath) || {};
     }
 
     private getFilteredMarkdownFiles(): TFile[] {
@@ -256,12 +284,12 @@ export class SiteGenerator {
         try {
             this.log(`Processing markdown: ${file.path}`);
 
-            const fileCache = this.plugin.app.metadataCache.getFileCache(file);
-            const frontMatter = fileCache?.frontmatter || {};
-            if (fileCache?.frontmatter) this.log('Frontmatter:', frontMatter);
+            const frontMatter = this.getFrontmatter(file.path);
+            if (Object.keys(frontMatter).length > 0) this.log('Frontmatter:', frontMatter);
 
             let content = await this.plugin.app.vault.read(file);
 
+            const fileCache = this.plugin.app.metadataCache.getFileCache(file);
             if (fileCache?.frontmatterPosition) {
                 const frontmatterEnd = fileCache.frontmatterPosition.end.offset;
                 content = content.substring(frontmatterEnd).trim();
@@ -401,6 +429,37 @@ export class SiteGenerator {
 
     // ==================== Navigation Generation ====================
 
+    private getNavSortData(filePath: string, file?: TFile): { navOrder: number, sortDate: number } {
+        const frontmatter = this.getFrontmatter(filePath);
+        const navOrder = frontmatter.nav_order ?? 0;
+        
+        let sortDate: number;
+        if (frontmatter.published_date) {
+            sortDate = new Date(frontmatter.published_date).getTime();
+        } else if (file) {
+            sortDate = file.stat.mtime;
+        } else {
+            sortDate = 0;
+        }
+        
+        return { navOrder, sortDate };
+    }
+
+    private sortNavNodes(nodes: NavNode[]): void {
+        nodes.sort((a, b) => {
+            if (a.navOrder !== b.navOrder) {
+                return a.navOrder - b.navOrder;
+            }
+            return b.sortDate - a.sortDate;
+        });
+        
+        for (const node of nodes) {
+            if (node.children.length > 0) {
+                this.sortNavNodes(node.children);
+            }
+        }
+    }
+
     private buildNavigationTree(): NavNode[] {
         const files = [...this.getFilteredMarkdownFiles()];
         const rootNodes: NavNode[] = [];
@@ -411,14 +470,19 @@ export class SiteGenerator {
         for (const file of files) {
             const parts = file.path.split('/');
             const isIndex = file.basename.toLowerCase() === 'index';
+            const { navOrder, sortDate } = this.getNavSortData(file.path, file);
+            const frontmatter = this.getFrontmatter(file.path);
+            const displayName = frontmatter.title || file.basename;
             
             if (parts.length === 1) {
                 rootNodes.push({
-                    name: file.basename,
+                    name: displayName,
                     path: file.path,
                     outputPath: this.getOutputPath(file.path),
                     children: [],
-                    isIndex
+                    isIndex,
+                    navOrder,
+                    sortDate
                 });
             } else {
                 let currentPath = '';
@@ -433,7 +497,9 @@ export class SiteGenerator {
                             path: currentPath,
                             outputPath: '',
                             children: [],
-                            isIndex: false
+                            isIndex: false,
+                            navOrder: 0,
+                            sortDate: 0
                         };
                         dirMap.set(currentPath, dirNode);
 
@@ -451,23 +517,29 @@ export class SiteGenerator {
                     if (isIndex) {
                         dirNode.outputPath = this.getOutputPath(file.path);
                         dirNode.isIndex = true;
+                        dirNode.navOrder = navOrder;
+                        dirNode.sortDate = sortDate;
+                        dirNode.name = displayName;
                     } else {
                         dirNode.children.push({
-                            name: file.basename,
+                            name: displayName,
                             path: file.path,
                             outputPath: this.getOutputPath(file.path),
                             children: [],
-                            isIndex: false
+                            isIndex: false,
+                            navOrder,
+                            sortDate
                         });
                     }
                 }
             }
         }
 
+        this.sortNavNodes(rootNodes);
         return rootNodes;
     }
 
-    private renderNavTree(nodes: NavNode[], currentPath: string, depth: number = 0): string {
+    private renderNavTree(nodes: NavNode[], currentPath: string): string {
         if (nodes.length === 0) return '';
 
         let html = '<ul>';
@@ -475,7 +547,7 @@ export class SiteGenerator {
         for (const node of nodes) {
             const isCurrent = node.outputPath === currentPath;
             const hasChildren = node.children.length > 0;
-            const displayName = node.isIndex && hasChildren ? node.name : node.name;
+            const displayName = node.name;
             const isOnCurrentPath = this.isNodeOnPathToFile(node, currentPath);
             
             html += '<li>';
@@ -488,20 +560,20 @@ export class SiteGenerator {
                 
                 if (node.outputPath) {
                     const relativePath = this.getRelativePath(currentPath, node.outputPath);
-                    html += `<a href="${relativePath}"${isCurrent ? ' class="active"' : ''}>${displayName}</a>`;
+                    html += `<a href="${relativePath}" title="${displayName}"${isCurrent ? ' class="active"' : ''}>${displayName}</a>`;
                 } else {
-                    html += `<span>${displayName}</span>`;
+                    html += `<span title="${displayName}">${displayName}</span>`;
                 }
                 
                 html += `</summary>`;
-                html += this.renderNavTree(node.children, currentPath, depth + 1);
+                html += this.renderNavTree(node.children, currentPath);
                 html += `</details>`;
             } else {
                 if (node.outputPath) {
                     const relativePath = this.getRelativePath(currentPath, node.outputPath);
-                    html += `<a href="${relativePath}"${isCurrent ? ' class="active"' : ''}>${displayName}</a>`;
+                    html += `<a href="${relativePath}" title="${displayName}"${isCurrent ? ' class="active"' : ''}>${displayName}</a>`;
                 } else {
-                    html += `<span>${displayName}</span>`;
+                    html += `<span title="${displayName}">${displayName}</span>`;
                 }
             }
             
@@ -526,6 +598,19 @@ export class SiteGenerator {
         const tree = this.buildNavigationTree();
         const html = this.renderNavTree(tree, currentPath);
         return html;
+    }
+
+    private formatDates(frontMatter: Record<string, any>): string {
+        const parts: string[] = [];
+        
+        if (frontMatter.published_date) {
+            parts.push(`Published: ${frontMatter.published_date}`);
+        }
+        if (frontMatter.last_modified_date) {
+            parts.push(`Updated: ${frontMatter.last_modified_date}`);
+        }
+        
+        return parts.join(' · ');
     }
 
     // ==================== Template & Asset Handling ====================
@@ -554,12 +639,15 @@ export class SiteGenerator {
             });
         }
 
+        const dates = this.formatDates(frontMatter);
+
         return Mustache.render(template, {
             title: frontMatter.title || filename,
             siteName: this.siteName,
             rootPath,
             content,
             navigation,
+            dates,
             styleSheet: frontMatter.page_css || 'default.css',
             seoMetaTags: seoData.metaTags,
             seoStructuredData: seoData.structuredData,

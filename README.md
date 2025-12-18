@@ -8,6 +8,7 @@ FourSG transforms your Obsidian vault into a clean, minimal static website with 
 
 Unlike more complex static site generators, FourSG prioritizes **simplicity and manual authoring** over automation. You write markdown, add optional frontmatter for customization, and FourSG handles the rest—no build scripts, complex templating, or configuration files required.
 
+More about the background of FourSG, see [this blog post](https://iron.blue/blog/2025/introducing-foursg).
 ## Design Principles
 
 FourSG is built around these core principles:
@@ -16,10 +17,11 @@ FourSG is built around these core principles:
 - **Markdown Only** - All your site content can be maintained in Obsidian
 - **Manual Authoring** - You control the content; FourSG handles the structure
 - **Vault-Like Structure** - Generated site mirrors your vault organization
-- **Classic Web Aesthetic** - Clean, simple presentation is the default 
+- **Classic Web Aesthetic** - Clean, simple presentation is the default
 - **Optional Customization** - Extend with custom CSS and templates only if desired
 - **Purposefully Limited** - Fewer features means less complexity
 - **SEO Enabled** - Make sure people can find your content
+
 ## Quick Start
 
 1. Install the FourSG plugin
@@ -30,26 +32,26 @@ FourSG is built around these core principles:
 ## First Run Actions
 
 The first time you run FourSG, it will create an `obsidian-foursg/` directory in your vault. This directory contains:
+
 - `templates/` - For HTML template files. A default.html is automatically created
 - `css/` - For CSS files. A default.css is automatically created
 - `site/` - The generated website
-- `robots.txt` - Default robots.txt file
 - `README.md` - This file
 
-After this, the `obsidian-foursg/` directory will persist in your vault. You can modify the contents of the
-`templates/` and `css/` directories to customize the appearance of your site. These files will not be overwritten when the
-site is regenerated. If default.html or default.css are deleted or renamed, new default files will be created (even if
-they are not used in the site).
+After this, the `obsidian-foursg/` directory will persist in your vault. You can modify the contents of the `templates/` and `css/` directories to customize the appearance of your site. These files will not be overwritten when the site is regenerated. If default.html or default.css are deleted or renamed, new default files will be created (even if they are not used in the site).
 
-The `site/` subdirectory is always emptied and rebuilt with each site generation, so you should not make any modifications
-there as they will be lost with the next site generation.
+The `site/` subdirectory is always emptied and rebuilt with each site generation, so you should not make any modifications there as they will be lost with the next site generation.
+
+If you delete README.md from this directory, it will be re-created the next time you run FourSG. If you upgrade FourSG, the latest README.md will be re-created in this location.
 
 ## Commands
 
 FourSG provides the following commands (accessible via Command Palette with `Ctrl/Cmd+P`):
 
 ### **FourSG: Generate static site**
+
 Converts your entire vault into a static website. This will:
+
 - Process all markdown files (except those in `obsidian-foursg/`)
 - Convert wiki links and image embeds to standard HTML
 - Generate navigation based on folder structure
@@ -59,7 +61,9 @@ Converts your entire vault into a static website. This will:
 - Output everything to `obsidian-foursg/site/`
 
 ### **FourSG: Clear output directory**
+
 Deletes the generated site directory (`obsidian-foursg/site/`). Useful for:
+
 - Starting fresh before regenerating
 - Removing old generated files
 - Troubleshooting build issues
@@ -67,7 +71,9 @@ Deletes the generated site directory (`obsidian-foursg/site/`). Useful for:
 **Note:** This only clears the site output, not your templates or CSS.
 
 ### **FourSG: Enable debug logging**
+
 Enables detailed console logging for troubleshooting. When enabled, you'll see:
+
 - File processing details
 - Template loading information
 - Navigation tree building
@@ -77,6 +83,7 @@ Enables detailed console logging for troubleshooting. When enabled, you'll see:
 Check the Developer Console (`Ctrl/Cmd+Shift+I`) to view debug logs.
 
 ### **FourSG: Disable debug logging**
+
 Turns off debug logging. Only essential messages (site generation start/complete, warnings, errors) will be shown.
 
 ## Site Configuration
@@ -92,12 +99,13 @@ site_url: https://mysite.com
 
 ### Site Configuration Fields
 
-| Field | Required | Description | Default |
-|-------|----------|-------------|---------|
-| `site_name` | No | Name of your site (appears in page titles and header) | `My Site` |
-| `site_url` | Recommended | Base URL of your site (required for proper SEO) | `https://example.com` |
+| Field       | Required    | Description                                           | Default               |
+|-------------|-------------|-------------------------------------------------------|-----------------------|
+| `site_name` | No          | Name of your site (appears in page titles and header) | `My Site`             |
+| `site_url`  | Recommended | Base URL of your site (required for proper SEO)       | `https://example.com` |
 
-**⚠️ Warning:** If `site_url` is not defined, a warning will be logged and `https://example.com` will be used as a placeholder.
+**⚠️ Warning:** If `site_url` is not defined, a warning will be logged and `https://example.com` will be used as a
+placeholder.
 
 ## Page Frontmatter
 
@@ -110,14 +118,20 @@ Each markdown file can include optional frontmatter to control its appearance, S
 title: Custom Page Title
 page_template: custom.html
 page_css: custom.css
+nav_order: 10
 ---
 ```
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `title` | Page title (overrides filename) | Filename |
+| Field           | Description                                                            | Default        |
+|-----------------|------------------------------------------------------------------------|----------------|
+| `title`         | Page title (overrides filename)                                        | Filename       |
 | `page_template` | Custom HTML template file (must exist in `obsidian-foursg/templates/`) | `default.html` |
-| `page_css` | Custom CSS file (must exist in `obsidian-foursg/css/`) | `default.css` |
+| `page_css`      | Custom CSS file (must exist in `obsidian-foursg/css/`)                 | `default.css`  |
+| `nav_order`     | Navigation order (lower numbers appear first)                          | 0              |
+
+#### Navigation Order
+
+The `nav_order` field controls the order of items in the navigation menu. Lower numbers appear first, and negative numbers are supported. If not specified, the default is 0, and those pages will be ordered by their last modified date.
 
 ### SEO Fields
 
@@ -127,7 +141,7 @@ All SEO fields are optional but recommended for better search engine visibility:
 ---
 title: My Article Title
 description: A brief description for search engines
-keywords: ["obsidian", "static-site", "seo"]
+keywords: [ "obsidian", "static-site", "seo" ]
 author: Your Name
 og_image: images/preview.jpg
 type: article
@@ -138,17 +152,17 @@ canonical: https://mysite.com/custom-url
 ---
 ```
 
-| Field | Description | Auto-generated Default |
-|-------|-------------|------------------------|
-| `description` | Meta description for SEO and social sharing | None |
-| `keywords` | Array of keywords for SEO | None |
-| `author` | Author name (used in meta tags and structured data) | None |
-| `og_image` | Path to Open Graph image for social sharing (relative or absolute URL) | None |
-| `type` | Content type: `article` or `website` | `article` for nested pages, `website` for root |
-| `published_date` | Publication date (ISO 8601 format recommended: `YYYY-MM-DD`) | None |
-| `last_modified_date` | Last modified date (ISO 8601 format recommended: `YYYY-MM-DD`) | File modification time |
-| `section` | Article section/category | Parent folder name |
-| `canonical` | Canonical URL if different from page URL | Page URL |
+| Field                | Description                                                            | Auto-generated Default                         |
+|----------------------|------------------------------------------------------------------------|------------------------------------------------|
+| `description`        | Meta description for SEO and social sharing                            | None                                           |
+| `keywords`           | Array of keywords for SEO                                              | None                                           |
+| `author`             | Author name (used in meta tags and structured data)                    | None                                           |
+| `og_image`           | Path to Open Graph image for social sharing (relative or absolute URL) | None                                           |
+| `type`               | Content type: `article` or `website`                                   | `article` for nested pages, `website` for root |
+| `published_date`     | Publication date (ISO 8601 format recommended: `YYYY-MM-DD`)           | None                                           |
+| `last_modified_date` | Last modified date (ISO 8601 format recommended: `YYYY-MM-DD`)         | File modification time                         |
+| `section`            | Article section/category                                               | Parent folder name                             |
+| `canonical`          | Canonical URL if different from page URL                               | Page URL                                       |
 
 ### Sitemap Fields
 
@@ -161,10 +175,10 @@ priority: 0.9
 ---
 ```
 
-| Field | Description | Auto-generated Default |
-|-------|-------------|------------------------|
-| `changefreq` | How often the page changes: `always`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `never` | `weekly` for root pages, `monthly` for nested |
-| `priority` | Sitemap priority (0.0 to 1.0) | `1.0` for root index, `0.8` for nested index, `0.6` for other pages |
+| Field        | Description                                                                                     | Auto-generated Default                                              |
+|--------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `changefreq` | How often the page changes: `always`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `never` | `weekly` for root pages, `monthly` for nested                       |
+| `priority`   | Sitemap priority (0.0 to 1.0)                                                                   | `1.0` for root index, `0.8` for nested index, `0.6` for other pages |
 
 ### Complete Example
 

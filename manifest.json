@@ -1,11 +1,11 @@
 {
 	"id": "foursg-plugin",
 	"name": "FourSG",
-	"version": "0.2.0",
+	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "A powerful Obsidian plugin to enhance your note-taking experience",
-	"author": "Your Name",
-	"authorUrl": "https://github.com/yourusername",
+	"description": "A Super Simple Static Site Generator for Obsidian",
+	"author": "Ron Fritz",
+	"authorUrl": "https://github.com/rezrov/foursg",
 	"fundingUrl": "",
 	"isDesktopOnly": false
 }

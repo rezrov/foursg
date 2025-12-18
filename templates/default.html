@@ -25,7 +25,11 @@
             try {
                 const state = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}');
                 document.querySelectorAll('.nav-folder').forEach(details => {
-                    if (state[details.id] !== undefined) {
+                    // Always keep folders open if they contain the active page
+                    const containsActive = details.querySelector('a.active') !== null;
+                    if (containsActive) {
+                        details.open = true;
+                    } else if (state[details.id] !== undefined) {
                         details.open = state[details.id];
                     }
                     details.addEventListener('toggle', saveNavState);
@@ -62,6 +66,9 @@
         <main class="content">
             <article>
                 <h1>{{title}}</h1>
+                <div class="article-meta">
+                    <small><span class="article-date">{{dates}}</span></small>
+                </div>
                 <div class="article-content">
                     {{{content}}}
                 </div>

@@ -8,7 +8,7 @@ FourSG transforms your Obsidian vault into a clean, minimal static website with 
 
 Unlike more complex static site generators, FourSG prioritizes **simplicity and manual authoring** over automation. You write markdown, add optional frontmatter for customization, and FourSG handles the rest—no build scripts, complex templating, or configuration files required.
 
-More about the background of FourSG, see [this blog post](https://iron.blue/blog/2025/introducing-foursg).
+More about the background of FourSG, see [this blog post](https://iron.blue/blog/2025/oct-nov-dec/introducing-foursg).
 ## Design Principles
 
 FourSG is built around these core principles:

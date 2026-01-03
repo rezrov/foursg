@@ -19,17 +19,13 @@
                 document.querySelectorAll('.nav-folder').forEach(details => {
                     state[details.id] = details.open;
                 });
-                localStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
+                sessionStorage.setItem(NAV_STATE_KEY, JSON.stringify(state));
             }
             
             try {
-                const state = JSON.parse(localStorage.getItem(NAV_STATE_KEY) || '{}');
+                const state = JSON.parse(sessionStorage.getItem(NAV_STATE_KEY) || '{}');
                 document.querySelectorAll('.nav-folder').forEach(details => {
-                    // Always keep folders open if they contain the active page
-                    const containsActive = details.querySelector('a.active') !== null;
-                    if (containsActive) {
-                        details.open = true;
-                    } else if (state[details.id] !== undefined) {
+                    if (state[details.id] !== undefined) {
                         details.open = state[details.id];
                     }
                     details.addEventListener('toggle', saveNavState);

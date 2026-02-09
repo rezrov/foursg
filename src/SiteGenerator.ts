@@ -31,10 +31,13 @@ export class SiteGenerator {
     private readonly outputPath: string;
     private readonly cssPath: string;
     private readonly templatePath: string;
+    private readonly miscPath: string;
     private processedFiles: Set<string> = new Set();
     private static readonly IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+    private static readonly VIDEO_EXTENSIONS = ['.mp4', '.webm'];
     private cachedMarkdownFiles: TFile[] | null = null;
     private cachedImageFiles: TFile[] | null = null;
+    private cachedVideoFiles: TFile[] | null = null;
     private templateCache: Map<string, string> = new Map();
     private frontmatterCache: Map<string, FrontmatterData> = new Map();
     private siteName: string = 'My Site';
@@ -65,6 +68,7 @@ export class SiteGenerator {
         this.sitePath = normalizePath(this.outputPath + "/site");
         this.cssPath = normalizePath(this.outputPath + "/css");
         this.templatePath = normalizePath(this.outputPath + "/templates");
+        this.miscPath = normalizePath(this.outputPath + "/misc");
 
         marked.setOptions({
             breaks: true,
@@ -103,6 +107,12 @@ export class SiteGenerator {
 
             this.log('Copying images');
             await this.copyImages();
+
+            this.log('Copying videos');
+            await this.copyVideos();
+
+            this.log('Copying misc files');
+            await this.copyMiscFiles();
 
             this.log('Generating sitemap.xml');
             await this.generateSitemap();
@@ -145,6 +155,8 @@ export class SiteGenerator {
         await this.ensureDirectory(this.cssPath);
         await this.copyCSS();
 
+        await this.ensureDirectory(this.miscPath);
+
         const readmePath = join(this.outputPath, 'README.md');
         await this.copyUnlessExists('README.md', readmePath);
     }
@@ -181,6 +193,7 @@ export class SiteGenerator {
     private cacheClearAll(): void {
         this.cachedMarkdownFiles = null;
         this.cachedImageFiles = null;
+        this.cachedVideoFiles = null;
         this.templateCache.clear();
         this.frontmatterCache.clear();
         this.processedFiles.clear();
@@ -222,6 +235,18 @@ export class SiteGenerator {
             });
         }
         return this.cachedImageFiles;
+    }
+
+    private getFilteredVideoFiles(): TFile[] {
+        if (!this.cachedVideoFiles) {
+            const allFiles = this.plugin.app.vault.getFiles();
+            this.cachedVideoFiles = allFiles.filter(file => {
+                if (this.isInOutputPath(file.path)) return false;
+                const ext = extname(file.path).toLowerCase();
+                return SiteGenerator.VIDEO_EXTENSIONS.includes(ext);
+            });
+        }
+        return this.cachedVideoFiles;
     }
 
     // ==================== File System Operations ====================
@@ -337,15 +362,30 @@ export class SiteGenerator {
     }
 
     private convertImageEmbeds(content: string, file: TFile): string {
-        return content.replace(/!\[\[([^\]]+)\]\]/g, (match, imagePath) => {
-            const imageFile = this.findImageFile(imagePath);
-            if (!imageFile) return `![${imagePath}](#broken-image)`;
+        return content.replace(/!\[\[([^\]]+)\]\]/g, (match, embedPath) => {
+            const ext = extname(embedPath).toLowerCase();
+
+            if (SiteGenerator.VIDEO_EXTENSIONS.includes(ext)) {
+                const videoFile = this.findVideoFile(embedPath);
+                if (!videoFile) return `<!-- broken video: ${embedPath} -->`;
+
+                const currentOutputPath = this.getOutputPath(file.path);
+                const videoOutputPath = this.getImageOutputPath(videoFile.path);
+                const relativePath = this.getRelativePath(currentOutputPath, videoOutputPath);
+                const encodedPath = relativePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+                const mimeType = ext === '.webm' ? 'video/webm' : 'video/mp4';
+                return `<video controls><source src="${encodedPath}" type="${mimeType}"></video>`;
+            }
+
+            const imageFile = this.findImageFile(embedPath);
+            if (!imageFile) return `![${embedPath}](#broken-image)`;
 
             const currentOutputPath = this.getOutputPath(file.path);
             const imageOutputPath = this.getImageOutputPath(imageFile.path);
 
             const relativePath = this.getRelativePath(currentOutputPath, imageOutputPath);
-            return `![](${relativePath})`;
+            const encodedPath = relativePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            return `![](${encodedPath})`;
         });
     }
 
@@ -369,6 +409,14 @@ export class SiteGenerator {
         const imageFiles = this.getFilteredImageFiles();
         for (const file of imageFiles) {
             if (file.path === imageName || file.name === imageName || file.basename === imageName) return file;
+        }
+        return null;
+    }
+
+    private findVideoFile(videoName: string): TFile | null {
+        const videoFiles = this.getFilteredVideoFiles();
+        for (const file of videoFiles) {
+            if (file.path === videoName || file.name === videoName || file.basename === videoName) return file;
         }
         return null;
     }
@@ -711,6 +759,79 @@ export class SiteGenerator {
             }
         }
         this.log(`Total images copied: ${imageCount}`);
+    }
+
+    private async copyVideos(): Promise<void> {
+        const videoFiles = this.getFilteredVideoFiles();
+        let videoCount = 0;
+        this.log(`Scanning ${videoFiles.length} video files.`);
+
+        for (const file of videoFiles) {
+            try {
+                this.log(`Copying video: ${file.path}`);
+
+                const arrayBuffer = await this.plugin.app.vault.readBinary(file);
+                const outputPath = this.getImageOutputPath(file.path);
+                const outputDir = dirname(outputPath);
+
+                await this.ensureDirectory(outputDir);
+                await this.dataAdapter.writeBinary(normalizePath(outputPath), arrayBuffer);
+
+                videoCount++;
+            }
+            catch (error) {
+                this.error(`Error copying video ${file.path}:`, error);
+            }
+        }
+        this.log(`Total videos copied: ${videoCount}`);
+    }
+
+    // ==================== Misc File Copying ====================
+
+    private async copyMiscFiles(): Promise<void> {
+        const miscExists = await this.dataAdapter.exists(this.miscPath);
+        if (!miscExists) return;
+
+        await this.copyMiscRecursive(this.miscPath, this.sitePath);
+    }
+
+    private async copyMiscRecursive(sourceDirPath: string, destDirPath: string): Promise<void> {
+        const items = await this.dataAdapter.list(sourceDirPath);
+
+        for (const filePath of items.files) {
+            const fileName = basename(filePath);
+            const destFilePath = join(destDirPath, fileName);
+            const destExists = await this.dataAdapter.exists(destFilePath);
+
+            if (destExists) {
+                const relativeDest = destFilePath.replace(this.sitePath + '/', '');
+                const msg = `FourSG: Skipping misc file "${fileName}" — conflict with existing "${relativeDest}" in generated site`;
+                this.alwaysLog(`WARNING: ${msg}`);
+                new Notice(msg);
+                continue;
+            }
+
+            const content = await this.dataAdapter.readBinary(filePath);
+            await this.dataAdapter.writeBinary(normalizePath(destFilePath), content);
+            this.log(`Copied misc file: ${fileName}`);
+        }
+
+        for (const folderPath of items.folders) {
+            const folderName = basename(folderPath);
+            const destFolderPath = join(destDirPath, folderName);
+            const destExists = await this.dataAdapter.exists(destFolderPath);
+
+            if (destExists) {
+                const relativeDest = destFolderPath.replace(this.sitePath + '/', '');
+                const msg = `FourSG: Skipping misc directory "${folderName}" — conflict with existing "${relativeDest}" in generated site`;
+                this.alwaysLog(`WARNING: ${msg}`);
+                new Notice(msg);
+                continue;
+            }
+
+            await this.ensureDirectory(destFolderPath);
+            await this.copyMiscRecursive(folderPath, destFolderPath);
+        }
     }
 
     // ==================== SEO Methods ====================

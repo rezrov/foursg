@@ -149,8 +149,11 @@ body {
     height: auto;
     display: block;
     margin: 1.5rem auto;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.article-content video {
+    display: block;
+    margin: 1.5rem auto;
 }
 
 .article-content table {

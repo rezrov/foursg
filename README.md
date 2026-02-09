@@ -35,6 +35,7 @@ The first time you run FourSG, it will create an `obsidian-foursg/` directory in
 
 - `templates/` - For HTML template files. A default.html is automatically created
 - `css/` - For CSS files. A default.css is automatically created
+- `misc/` - For arbitrary files to include in the generated site (empty by default)
 - `site/` - The generated website
 - `README.md` - This file
 
@@ -53,11 +54,12 @@ FourSG provides the following commands (accessible via Command Palette with `Ctr
 Converts your entire vault into a static website. This will:
 
 - Process all markdown files (except those in `obsidian-foursg/`)
-- Convert wiki links and image embeds to standard HTML
+- Convert wiki links, image embeds, and video embeds to standard HTML
 - Generate navigation based on folder structure
 - Create SEO metadata for all pages
 - Generate `sitemap.xml` and `robots.txt`
-- Copy all images and CSS files
+- Copy all images, videos, and CSS files
+- Copy misc files into the site root
 - Output everything to `obsidian-foursg/site/`
 
 ### **FourSG: Clear output directory**
@@ -85,6 +87,35 @@ Check the Developer Console (`Ctrl/Cmd+Shift+I`) to view debug logs.
 ### **FourSG: Disable debug logging**
 
 Turns off debug logging. Only essential messages (site generation start/complete, warnings, errors) will be shown.
+
+## Video Support
+
+FourSG supports embedding `.mp4` and `.webm` video files in your pages. Place video files anywhere in your vault and embed them using Obsidian's standard syntax:
+
+```
+![[my-video.mp4]]
+```
+
+This will generate an HTML `<video>` element with playback controls. Videos are copied to the output site alongside images.
+
+### Recommended Format
+
+MP4 with H.264 video and AAC audio provides the broadest device and browser compatibility. If you need to convert a video from another format, the following `ffmpeg` command produces a web-optimized MP4 at 640px wide:
+
+```bash
+ffmpeg -i input.mov -c:v libx264 -preset slow -crf 23 -vf "scale=640:-2" -c:a aac -b:a 128k -movflags +faststart output.mp4
+```
+
+| Option                  | Description                                                                   |
+|-------------------------|-------------------------------------------------------------------------------|
+| `-c:v libx264`          | H.264 codec — the most broadly supported video codec                          |
+| `-preset slow`          | Better compression at the cost of slower encoding time                        |
+| `-crf 23`               | Quality level (18 = near-lossless, 23 = good for web, 28+ = noticeably lossy) |
+| `-vf "scale=640:-2"`    | Scale width to 640px, auto-calculate height (divisible by 2 for H.264)        |
+| `-c:a aac -b:a 128k`   | AAC audio at 128kbps                                                          |
+| `-movflags +faststart`  | Enables progressive playback before full download completes                   |
+
+Adjust the width value and `-crf` to suit your needs.
 
 ## Site Configuration
 
@@ -214,7 +245,19 @@ You can customize templates and styles by editing files in:
 
 - **`obsidian-foursg/templates/`** - HTML templates
 - **`obsidian-foursg/css/`** - CSS stylesheets
+- **`obsidian-foursg/misc/`** - Arbitrary files copied to the site root (see below)
 - **`obsidian-foursg/robots.txt`** - Custom robots.txt (overrides default)
+
+### Misc Files
+
+The `obsidian-foursg/misc/` directory lets you include arbitrary files in your generated site. Any files or subdirectories placed here are copied directly into the root of the generated site without modification, regardless of file type. This is useful for things like:
+
+- Verification files (e.g. `google1234.html`)
+- Custom `favicon.ico`
+- `.well-known/` directories
+- Any other static assets not managed by Obsidian
+
+Misc files are copied after all other site content (markdown, images, videos) has been processed. If a file or directory in `misc/` would conflict with something already present in the generated site, the conflicting item is skipped and a warning is shown both in the console and as an Obsidian notification.
 
 ## SEO Features
 

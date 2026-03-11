@@ -150,6 +150,7 @@ title: Custom Page Title
 page_template: custom.html
 page_css: custom.css
 nav_order: 10
+omit_from_nav: true
 ---
 ```
 
@@ -159,10 +160,15 @@ nav_order: 10
 | `page_template` | Custom HTML template file (must exist in `obsidian-foursg/templates/`) | `default.html` |
 | `page_css`      | Custom CSS file (must exist in `obsidian-foursg/css/`)                 | `default.css`  |
 | `nav_order`     | Navigation order (lower numbers appear first)                          | 0              |
+| `omit_from_nav` | If truthy, the page is excluded from the navigation sidebar            | Not set        |
 
 #### Navigation Order
 
 The `nav_order` field controls the order of items in the navigation menu. Lower numbers appear first, and negative numbers are supported. If not specified, the default is 0, and those pages will be ordered by their last modified date.
+
+#### Hiding Pages from Navigation
+
+Set `omit_from_nav: true` to exclude a page from the sidebar navigation. The page is still generated and accessible via direct links or wiki links—it simply won't appear in the nav tree. When a visitor is viewing a hidden page, the navigation renders normally with no item highlighted.
 
 ### SEO Fields
 

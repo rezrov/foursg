@@ -342,6 +342,21 @@ footer {
     margin-top: 0.25rem;
 }
 
+/* Fritz Scale */
+.fritz-scale {
+    margin-top: 2rem;
+    text-align: right;
+}
+
+.fritz-scale a {
+    display: inline-block;
+}
+
+.fritz-scale-icon {
+    width: 100px;
+    height: 100px;
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
     .nav-toggle-label {

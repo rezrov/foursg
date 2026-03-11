@@ -32,8 +32,10 @@ export class SiteGenerator {
     private readonly cssPath: string;
     private readonly templatePath: string;
     private readonly miscPath: string;
+    private readonly assetsPath: string;
     private processedFiles: Set<string> = new Set();
     private static readonly IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'];
+    private static readonly FRITZ_SCALE_FILES = ['fritz-1.svg', 'fritz-2.svg', 'fritz-3.svg', 'fritz-4.svg', 'fritz-5.svg'];
     private static readonly VIDEO_EXTENSIONS = ['.mp4', '.webm'];
     private cachedMarkdownFiles: TFile[] | null = null;
     private cachedImageFiles: TFile[] | null = null;
@@ -69,6 +71,7 @@ export class SiteGenerator {
         this.cssPath = normalizePath(this.outputPath + "/css");
         this.templatePath = normalizePath(this.outputPath + "/templates");
         this.miscPath = normalizePath(this.outputPath + "/misc");
+        this.assetsPath = normalizePath(this.outputPath + "/assets");
 
         marked.setOptions({
             breaks: true,
@@ -114,6 +117,8 @@ export class SiteGenerator {
             this.log('Copying misc files');
             await this.copyMiscFiles();
 
+            await this.copyFritzScaleAssets();
+
             this.log('Generating sitemap.xml');
             await this.generateSitemap();
 
@@ -156,6 +161,11 @@ export class SiteGenerator {
         await this.copyCSS();
 
         await this.ensureDirectory(this.miscPath);
+
+        await this.ensureDirectory(this.assetsPath);
+        for (const svgFile of SiteGenerator.FRITZ_SCALE_FILES) {
+            await this.copyUnlessExists(`assets/${svgFile}`, join(this.assetsPath, svgFile));
+        }
 
         const readmePath = join(this.outputPath, 'README.md');
         await this.copyUnlessExists('README.md', readmePath);
@@ -521,17 +531,20 @@ export class SiteGenerator {
             const { navOrder, sortDate } = this.getNavSortData(file.path, file);
             const frontmatter = this.getFrontmatter(file.path);
             const displayName = frontmatter.title || file.basename;
+            const omitFromNav = !!frontmatter.omit_from_nav;
             
             if (parts.length === 1) {
-                rootNodes.push({
-                    name: displayName,
-                    path: file.path,
-                    outputPath: this.getOutputPath(file.path),
-                    children: [],
-                    isIndex,
-                    navOrder,
-                    sortDate
-                });
+                if (!omitFromNav) {
+                    rootNodes.push({
+                        name: displayName,
+                        path: file.path,
+                        outputPath: this.getOutputPath(file.path),
+                        children: [],
+                        isIndex,
+                        navOrder,
+                        sortDate
+                    });
+                }
             } else {
                 let currentPath = '';
                 for (let i = 0; i < parts.length - 1; i++) {
@@ -563,12 +576,14 @@ export class SiteGenerator {
                 const dirNode = dirMap.get(currentPath);
                 if (dirNode) {
                     if (isIndex) {
-                        dirNode.outputPath = this.getOutputPath(file.path);
-                        dirNode.isIndex = true;
-                        dirNode.navOrder = navOrder;
-                        dirNode.sortDate = sortDate;
-                        dirNode.name = displayName;
-                    } else {
+                        if (!omitFromNav) {
+                            dirNode.outputPath = this.getOutputPath(file.path);
+                            dirNode.isIndex = true;
+                            dirNode.navOrder = navOrder;
+                            dirNode.sortDate = sortDate;
+                            dirNode.name = displayName;
+                        }
+                    } else if (!omitFromNav) {
                         dirNode.children.push({
                             name: displayName,
                             path: file.path,
@@ -642,9 +657,9 @@ export class SiteGenerator {
         return false;
     }
 
-    private generateNavigation(currentPath: string): string {
+    private generateNavigation(currentPath: string, omitFromNav: boolean): string {
         const tree = this.buildNavigationTree();
-        const html = this.renderNavTree(tree, currentPath);
+        const html = this.renderNavTree(tree, omitFromNav ? '' : currentPath);
         return html;
     }
 
@@ -674,7 +689,7 @@ export class SiteGenerator {
             this.templateCache.set(templatePath, template);
         }
 
-        const navigation = this.generateNavigation(outputFilePath);
+        const navigation = this.generateNavigation(outputFilePath, !!frontMatter.omit_from_nav);
         const seoData = this.generateSeoData(filename, outputFilePath, frontMatter, file, rootPath);
 
         const pageUrl = this.getPageUrl(outputFilePath);
@@ -688,6 +703,7 @@ export class SiteGenerator {
         }
 
         const dates = this.formatDates(frontMatter);
+        const fritzScaleHtml = this.generateFritzScaleHtml(frontMatter.fritz_scale, rootPath);
 
         return Mustache.render(template, {
             title: frontMatter.title || filename,
@@ -696,6 +712,7 @@ export class SiteGenerator {
             content,
             navigation,
             dates,
+            fritzScaleHtml,
             styleSheet: frontMatter.page_css || 'default.css',
             seoMetaTags: seoData.metaTags,
             seoStructuredData: seoData.structuredData,
@@ -832,6 +849,62 @@ export class SiteGenerator {
             await this.ensureDirectory(destFolderPath);
             await this.copyMiscRecursive(folderPath, destFolderPath);
         }
+    }
+
+    // ==================== Fritz Scale ====================
+
+    private hasFritzScaleUsage(): boolean {
+        for (const [, frontmatter] of this.frontmatterCache) {
+            const value = frontmatter.fritz_scale;
+            if (typeof value === 'number' && value >= 1 && value <= 5) return true;
+        }
+        return false;
+    }
+
+    private async copyFritzScaleAssets(): Promise<void> {
+        if (!this.hasFritzScaleUsage()) return;
+
+        const siteAssetsPath = join(this.sitePath, 'assets');
+        const dirExists = await this.dataAdapter.exists(siteAssetsPath);
+        if (!dirExists) {
+            await this.ensureDirectory(siteAssetsPath);
+            this.alwaysLog('FourSG: Created assets directory for Fritz Scale icons');
+        }
+
+        for (const svgFile of SiteGenerator.FRITZ_SCALE_FILES) {
+            const destPath = normalizePath(join(siteAssetsPath, svgFile));
+            const destExists = await this.dataAdapter.exists(destPath);
+            if (destExists) continue;
+
+            const sourcePath = join(this.assetsPath, svgFile);
+            const sourceExists = await this.dataAdapter.exists(sourcePath);
+            if (sourceExists) {
+                const content = await this.dataAdapter.readBinary(sourcePath);
+                await this.dataAdapter.writeBinary(destPath, content);
+                this.log(`Copied fritz scale asset: ${svgFile}`);
+            }
+        }
+    }
+
+    private generateFritzScaleHtml(fritzScale: number, rootPath: string): string {
+        if (typeof fritzScale !== 'number' || fritzScale < 1 || fritzScale > 5) return '';
+
+        const level = Math.floor(fritzScale);
+        const svgFile = `fritz-${level}.svg`;
+        const urls: Record<number, string> = {
+            1: this.plugin.settings.fritzScaleUrl1,
+            2: this.plugin.settings.fritzScaleUrl2,
+            3: this.plugin.settings.fritzScaleUrl3,
+            4: this.plugin.settings.fritzScaleUrl4,
+            5: this.plugin.settings.fritzScaleUrl5,
+        };
+        const url = urls[level] || '#';
+        const imgTag = `<img src="${rootPath}assets/${svgFile}" alt="Fritz Scale Level ${level}" class="fritz-scale-icon" width="100" height="100">`;
+
+        if (url) {
+            return `<div class="fritz-scale"><a href="${url}" title="Fritz Scale: Level ${level}">${imgTag}</a></div>`;
+        }
+        return `<div class="fritz-scale">${imgTag}</div>`;
     }
 
     // ==================== SEO Methods ====================

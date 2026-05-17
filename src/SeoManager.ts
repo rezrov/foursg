@@ -1,3 +1,20 @@
+export function escapeHtml(text: string): string {
+    const map: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function escapeJsonForScript(json: string): string {
+    return json
+        .replace(/<\/(script)/gi, '<\\/$1')
+        .replace(/<!--/g, '<\\!--');
+}
+
 export interface SeoConfig {
     title: string;
     description?: string;
@@ -116,9 +133,9 @@ export class SeoManager {
         const allTags = this.generateAllTags();
         return allTags.map(tag => {
             if (tag.property) {
-                return `    <meta property="${this.escapeHtml(tag.property)}" content="${this.escapeHtml(tag.content)}">`;
+                return `    <meta property="${escapeHtml(tag.property)}" content="${escapeHtml(tag.content)}">`;
             } else {
-                return `    <meta name="${this.escapeHtml(tag.name!)}" content="${this.escapeHtml(tag.content)}">`;
+                return `    <meta name="${escapeHtml(tag.name!)}" content="${escapeHtml(tag.content)}">`;
             }
         }).join('\n');
     }
@@ -162,32 +179,8 @@ export class SeoManager {
 
     generateStructuredDataScript(): string {
         const data = this.generateStructuredData();
-        return `    <script type="application/ld+json">\n${JSON.stringify(data, null, 2).split('\n').map(line => '    ' + line).join('\n')}\n    </script>`;
-    }
-
-    private escapeHtml(text: string): string {
-        const map: Record<string, string> = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
+        const json = escapeJsonForScript(JSON.stringify(data, null, 2));
+        return `    <script type="application/ld+json">\n${json.split('\n').map(line => '    ' + line).join('\n')}\n    </script>`;
     }
 }
 
-export function generateBreadcrumbStructuredData(breadcrumbs: Array<{name: string, url: string}>): string {
-    const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        'itemListElement': breadcrumbs.map((crumb, index) => ({
-            '@type': 'ListItem',
-            'position': index + 1,
-            'name': crumb.name,
-            'item': crumb.url
-        }))
-    };
-
-    return `    <script type="application/ld+json">\n${JSON.stringify(schema, null, 2).split('\n').map(line => '    ' + line).join('\n')}\n    </script>`;
-}

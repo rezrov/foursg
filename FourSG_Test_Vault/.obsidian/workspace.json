@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "764c8d661d3dbee3",
+        "id": "db2f712f7ec7b13d",
         "type": "tabs",
         "children": [
           {
-            "id": "a3668903e65a14c1",
+            "id": "1c48f38cc7111ae1",
             "type": "leaf",
             "state": {
               "type": "empty",
@@ -177,12 +177,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "a3668903e65a14c1",
+  "active": "1c48f38cc7111ae1",
   "lastOpenFiles": [
+    "articles/Stuff about work.md",
+    "articles/media/open_the_claw.mp4",
+    "articles/media",
+    "articles/Index.md",
     "blog/2024/That time I did something in 2024.md",
     "blog/Index.md",
-    "articles/Index.md",
-    "articles/Stuff about work.md",
     "articles/Stuff not about work.md",
     "obsidian-foursg/site/articles/apple.png",
     "obsidian-foursg/site/images/camera.png",
@@ -196,8 +198,6 @@
     "obsidian-foursg/site/blog/2025/later-2025-happenings.html",
     "obsidian-foursg/site/blog/2025/early-2025-happenings.html",
     "obsidian-foursg/site/blog/index.html",
-    "obsidian-foursg/site/blog/2024/that-time-i-did-something-in-2024.html",
-    "obsidian-foursg/site/articles",
     "obsidian-foursg/README.md",
     "Index.md",
     "articles/apple.png",
